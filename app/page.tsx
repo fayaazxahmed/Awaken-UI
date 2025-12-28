@@ -53,7 +53,7 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left box: File upload zone with purple glow */}
           <div className="relative">
-            <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-lg" />
+            <div className="absolute inset-0"/>
             <div className="relative z-10">
               <FileUploadZone />
             </div>
@@ -61,7 +61,7 @@ export default function Home() {
 
           {/* Right box: Generated code display with purple glow */}
           <div className="relative">
-            <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-lg" />
+            <div className="absolute inset-0"/>
             <div className="relative">
               <CodeDisplay />
             </div>
