@@ -89,6 +89,15 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               >
                 Get Notified
               </Button>
+
+              <p className="text-muted-foreground mb-6">
+                You can also track the project progress <a href="https://github.com/fayaazxahmed/Awaken-UI" className="link"
+                  style={{
+                    color: "#2563eb",
+                    textDecoration: "underline"
+                  }}
+                > here</a>
+              </p>
             </form>
           </div>
         )}
