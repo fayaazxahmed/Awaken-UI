@@ -18,8 +18,8 @@
 
 import type React from "react"
 
-import { useState, useCallback } from "react"
-import { Upload, FileImage, X } from "lucide-react"
+import { useState, useCallback, useRef, useEffect } from "react"
+import { Upload, FileImage, X, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import SignupModal from "./signup-modal"
 
@@ -28,6 +28,60 @@ export default function FileUploadZone() {
   const [isDragging, setIsDragging] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [uploadedFilePath, setUploadedFilePath] = useState<string | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Store the uploaded file name in a variable
+  const uploadedFileName = uploadedFile?.name || null
+  
+  // Upload file to server and run chandra command when a file is selected
+  useEffect(() => {
+    if (uploadedFile && !uploadedFilePath) {
+      setIsUploading(true)
+      
+      // Upload file to server
+      const formData = new FormData()
+      formData.append("file", uploadedFile)
+      
+      fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setUploadedFilePath(data.filePath)
+            console.log("File uploaded successfully:", data.filePath)
+            
+            // Run chandra command with the actual file path
+            return fetch("/api/run-chandra", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ filePath: data.filePath }),
+            })
+          } else {
+            throw new Error(data.error || "Failed to upload file")
+          }
+        })
+        .then((res) => res?.json())
+        .then((data) => {
+          if (data?.success) {
+            console.log("Chandra command executed successfully:", data.output)
+          } else {
+            console.error("Error running chandra:", data?.error)
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to process file:", error)
+        })
+        .finally(() => {
+          setIsUploading(false)
+        })
+    }
+  }, [uploadedFile, uploadedFilePath])
 
   // Handle file selection (both drag-drop and click)
   const handleFile = useCallback((file: File) => {
@@ -71,16 +125,30 @@ export default function FileUploadZone() {
     e.preventDefault()
     setIsDragging(false)
 
-    setShowModal(true)
-  }, [])
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleFile(file)
+    }
+  }, [handleFile])
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setShowModal(true)
+    const file = e.target.files?.[0]
+    if (file) {
+      handleFile(file)
+    }
+    // Reset the input value so the same file can be selected again
     e.target.value = ""
-  }, [])
+  }, [handleFile])
+
+  const handleZoneClick = useCallback(() => {
+    if (!uploadedFile && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }, [uploadedFile])
 
   const handleRemoveFile = useCallback(() => {
     setUploadedFile(null)
+    setUploadedFilePath(null)
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
@@ -102,8 +170,15 @@ export default function FileUploadZone() {
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          onClick={() => setShowModal(true)}
+          onClick={handleZoneClick}
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".png,.jpg,.jpeg,.fig,.svg,.pdf"
+            onChange={handleFileInput}
+          />
           {uploadedFile ? (
             // File uploaded state
             <div className="h-full p-6 flex flex-col">
@@ -115,12 +190,18 @@ export default function FileUploadZone() {
                   <div>
                     <p className="font-medium text-foreground">{uploadedFile.name}</p>
                     <p className="text-sm text-muted-foreground">{(uploadedFile.size / 1024).toFixed(2)} KB</p>
+                    {isUploading && (
+                      <p className="text-xs text-muted-foreground mt-1">Uploading and processing...</p>
+                    )}
                   </div>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={handleRemoveFile}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleRemoveFile()
+                  }}
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <X className="w-4 h-4" />
@@ -145,7 +226,7 @@ export default function FileUploadZone() {
             </div>
           ) : (
             // Empty state - ready for upload
-            <label className="h-full flex flex-col items-center justify-center cursor-pointer p-6">
+            <div className="h-full flex flex-col items-center justify-center cursor-pointer p-6">
               <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mb-4">
                 <Upload className="w-8 h-8 text-accent" />
               </div>
@@ -154,13 +235,7 @@ export default function FileUploadZone() {
               <Button variant="secondary" className="pointer-events-none">
                 Choose File
               </Button>
-              <input
-                type="file"
-                className="hidden"
-                accept=".png,.jpg,.jpeg,.fig,.svg,.pdf"
-                onChange={handleFileInput}
-              />
-            </label>
+            </div>
           )}
         </div>
       </div>
