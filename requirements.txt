@@ -1,0 +1,20 @@
+# Python dependencies for Chandra OCR Model
+# Based on: https://huggingface.co/datalab-to/chandra
+
+# Core transformers library
+transformers>=4.40.0
+
+# PyTorch for CPU (install appropriate version for your system)
+# For macOS with Apple Silicon:
+# torch>=2.0.0
+# For Linux/Windows CPU:
+torch>=2.0.0
+
+# Additional dependencies
+accelerate>=0.20.0
+pillow>=9.0.0
+numpy>=1.21.0
+
+# Optional: For better performance
+# sentencepiece>=0.1.99
+
